@@ -32,10 +32,11 @@ def import_yandex(url_list, folder_name):
     ya_token = get_token_ya()
     response = YaDisk(ya_token)
     for name, url_ in url_list.items():
-        flag = response.upload_file_(url_, '/'+folder_name+'/' + str(name))
-        if flag == False:
-            print(f'ОЙ...Что то пошло не так...\nОШИБКА загрзки {name}: {url_}')
-            break
+        if name != 'size':
+            flag = response.upload_file_(url_, '/'+folder_name+'/' + str(name))
+            if flag == False:
+                print(f'ОЙ...Что то пошло не так...\nОШИБКА загрзки {name}: {url_}')
+                break
 
 
 def request_vk_(URL):
@@ -67,7 +68,7 @@ if __name__ == '__main__':
 
     with open('request.json', 'w') as outfile:
         json.dump(request_vk, outfile, ensure_ascii=False, indent=2)
-    print(f'json - фаил сохранен\nВсего фото на отправку: {request_vk_["all_photo"]} ')
+    print(f'json - фаил сохранен\nИмя файла:request.json\nДоступно для отправки на я.диск: {request_vk_["all_photo"]} ')
 
     items_teg = request_vk['response']
     all_photo = items_teg['items']
@@ -83,21 +84,36 @@ if __name__ == '__main__':
         name_like = str(likes_photo['count']) +' ' + photo_upload_time
         if url_list_.get(name_like) == None:
             url_list_[name_like] = list_size_one_photo[number_elements_list - 1]['url']
+            url_list_['size'] = list_size_one_photo[number_elements_list - 1]['type']
         else:
             url_list_[str(name_like) + '_'] = list_size_one_photo[number_elements_list - 1]['url']
+            url_list_['size'] = list_size_one_photo[number_elements_list - 1]['type']
         url_list.append(url_list_)
         url_list_ = {}
-    print('')
-    # print(url_list)
-    folder_name = create_folder_yandex()
-    if folder_name != '':
-        print(f'Папка создана')
-        OK = input('Продолжить загрузку? (Y/N)')
-        if OK.lower() == 'y':
-            for i in tqdm(url_list):
-                import_yandex(i,folder_name)
-                time.sleep(1)
-        elif OK.lower() == 'y':
-            print('Загрузка прервана')
+    photo_upload = input('Сколько фото загрузить? ')
+    all_photo_up = request_vk_['all_photo']
+    try:
+        if int(photo_upload) <= int(all_photo_up) and int(photo_upload) != 0:
+            folder_name = create_folder_yandex()
+            if folder_name != '':
+                print(f'Папка создана')
+                OK = input('Продолжить загрузку? (Y/N)')
+                if OK.lower() == 'y':
+                    new_mass_photo = []
+                    for i in range(int(photo_upload)):
+                        new_mass_photo.append(url_list[i])
+                    for i in tqdm(new_mass_photo):
+                        import_yandex(i,folder_name)
+                        time.sleep(1)
+                elif OK.lower() == 'y':
+                    print('Загрузка прервана')
+                else:
+                    print('Неверный формат ввода')
         else:
-            print('Неверный формат ввода')
+            print('Ошибка ввода')
+    except ValueError:
+        print('Ошибка ввода')
+
+    with open('result.json', 'w') as outfile:
+        json.dump(new_mass_photo, outfile, ensure_ascii=False, indent=2)
+    print(f'Информация о загруженных файлах сохранена.\nИмя файла: result.json')
